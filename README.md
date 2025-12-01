@@ -1,6 +1,6 @@
 # 项目简介
 
-经过测试，此项目的（master分支）运行要求是 `>= Python 3.8` ，推荐使用 `Python 3.9`。
+经过测试，此项目的（master分支）运行要求是 `>= Python 3.12.*` ，推荐使用 `Python 3.12.*`。
 
 > **💡提示** 由于 Flask 中使用的 Werkzeug 模块更新，Flask 官方并未进行更新，所以可能会出现 ImportError 。
 > 此类情况的出现可以通过正确安装 `requirements.txt` 中的模块（以及其对应版本）解决。
