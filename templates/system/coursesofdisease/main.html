@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>病程管理</title>
+    {% include 'system/common/header.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='system/admin/css/other/user.css') }}"/>
+</head>
+<body class="pear-container">
+{# 查询表单 #}
+<div class="layui-card">
+    <div class="layui-card-body">
+        <form class="layui-form" action="" lay-filter="course-query-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">患者姓名</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="Name" placeholder="请输入患者姓名" class="layui-input">
+                </div>
+
+                <label class="layui-form-label">患者编号</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="PatientNo" placeholder="请输入患者编号" class="layui-input">
+                </div>
+
+                <label class="layui-form-label">联系电话</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="ContactPhone" placeholder="请输入联系电话" class="layui-input">
+                </div>
+                <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="course-query">
+                    <i class="layui-icon layui-icon-search"></i>
+                    查询
+                </button>
+                <button type="reset" class="pear-btn pear-btn-md">
+                    <i class="layui-icon layui-icon-refresh"></i>
+                    重置
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{# 病程表格 #}
+<div class="layui-card">
+    <div class="layui-card-body">
+        <table id="course-table" lay-filter="course-table"></table>
+    </div>
+</div>
+</body>
+{# 表格操作 #}
+<script type="text/html" id="course-toolbar">
+    {% if authorize("system:coursesofdisease:add") %}
+        <button class="pear-btn pear-btn-primary pear-btn-md" lay-event="add">
+            <i class="pear-icon pear-icon-add"></i>
+            新增
+        </button>
+    {% endif %}
+</script>
+
+{# 病程操作 #}
+<script type="text/html" id="course-bar">
+    {% if authorize("system:coursesofdisease:edit") %}
+        <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit"><i class="pear-icon pear-icon-edit"> 编辑</i>
+        </button>
+    {% endif %}
+    {% if authorize("system:coursesofdisease:remove") %}
+        <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove"><i
+                class="pear-icon pear-icon-ashbin"> 删除</i>
+        </button>
+    {% endif %}
+</script>
+
+{% raw %}
+<script type="text/html" id="course-createTime">
+    {{# if(d.CourseTime){ }}
+        {{layui.util.toDateString(d.CourseTime,  "yyyy-MM-dd HH:mm:ss")}}
+    {{# } else { }}
+        {{layui.util.toDateString(d.CreateDate,  "yyyy-MM-dd HH:mm:ss")}}
+    {{# } }}
+</script>
+
+<script type="text/html" id="course-updateTime">
+    {{layui.util.toDateString(d.ModifyDate,  "yyyy-MM-dd HH:mm:ss")}}
+</script>
+{% endraw %}
+
+{% include 'system/common/footer.html' %}
+
+<script>
+    layui.use(['table', 'form', 'jquery', 'popup'], function () {
+        let table = layui.table
+        let form = layui.form
+        let $ = layui.jquery
+        let popup = layui.popup
+        let MODULE_PATH = "{{ url_for('system.coursesofdisease.main') }}"
+        
+        // 表格数据
+        let cols = [
+            [
+                {title: '患者编号', field: 'PatientNo', align: 'center', width: 160},
+                {title: '患者姓名', field: 'Name', align: 'center', width: 160},
+                {title: '病程类型', field: 'CourseType', align: 'center', width: 160},
+                {title: '现病史', field: 'CurrentDisease', align: 'center', width: 300},
+                {title: '病程时间', field: 'CourseTime', templet: '#course-createTime', align: 'center', width: 160},
+                {title: '创建人', field: 'Creator', align: 'center', width: 160},
+                {title: '创建时间', field: 'CreateDate', templet: '#course-createTime', align: 'center', width: 160},
+                {title: '操作', toolbar: '#course-bar', align: 'center', width: 260}
+            ]
+        ]
+
+        // 渲染表格数据
+        table.render({
+            elem: '#course-table',
+            url: MODULE_PATH + '/data',
+            page: true,
+            cols: cols,
+            skin: 'line',
+            height: 'full-148',
+            toolbar: '#course-toolbar',
+            text: {none: '暂无病程信息'},
+            defaultToolbar: [{layEvent: 'refresh', icon: 'layui-icon-refresh'}, 'filter', 'print', 'exports']
+        })
+
+        table.on('tool(course-table)', function (obj) {
+            if (obj.event === 'remove') {
+                window.remove(obj)
+            } else if (obj.event === 'edit') {
+                window.edit(obj)
+            }
+        })
+
+        table.on('toolbar(course-table)', function (obj) {
+            if (obj.event === 'add') {
+                window.add()
+            } else if (obj.event === 'refresh') {
+                window.refresh()
+            }
+        })
+
+        form.on('submit(course-query)', function (data) {
+            window.refresh(data.field)
+            return false
+        })
+
+        // 新增病程弹窗
+        window.add = function () {
+            layer.open({
+                type: 2,
+                title: '新增病程',
+                shade: 0.1,
+                area: ['900px', '700px'],
+                content: MODULE_PATH + '/add'
+            })
+        }
+        
+        // 修改病程弹窗
+        window.edit = function (obj) {
+            layer.open({
+                type: 2,
+                title: '修改病程',
+                shade: 0.1,
+                area: ['900px', '700px'],
+                content: MODULE_PATH + '/edit/' + obj.data['CourseID']
+            })
+        }
+
+        // 删除病程弹窗
+        window.remove = function (obj) {
+            layer.confirm('确定要删除该病程记录吗？', {icon: 3, title: '提示'}, function (index) {
+                layer.close(index)
+                let loading = layer.load()
+                $.ajax({
+                    url: MODULE_PATH + '/remove/' + obj.data['CourseID'],
+                    dataType: 'json',
+                    type: 'delete',
+                    success: function (result) {
+                        layer.close(loading)
+                        if (result.success) {
+                            popup.success(result.msg, function () {
+                                obj.del()
+                            })
+                        } else {
+                            popup.failure(result.msg)
+                        }
+                    }
+                })
+            })
+        }
+
+        window.refresh = function (param) {
+            table.reload('course-table', {where: param})
+        }
+    })
+</script>
+</html>

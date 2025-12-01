@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>首页</title>
+    {% include 'system/common/header.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='system/admin/css/other/console1.css') }}"/>
+
+    <!-- 主 题 更 换 -->
+    <style id="pearadmin-bg-color"></style>
+</head>
+<body class="pear-container">
+<div>
+    <div class="layui-row layui-col-space10">
+        <div class="layui-col-xs6 layui-col-md3">
+            <div class="layui-card top-panel">
+                <div class="layui-card-header">患者总数</div>
+                <div class="layui-card-body">
+                    <div class="layui-row layui-col-space5">
+                        <div class="layui-col-xs8 layui-col-md8 top-panel-number" style="color: #28333E;" id="local-patient-count">
+                            0
+                        </div>
+                        <div class="layui-col-xs4 layui-col-md4 top-panel-tips">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs6 layui-col-md3">
+            <div class="layui-card top-panel">
+                <div class="layui-card-header">预约数量</div>
+                <div class="layui-card-body">
+                    <div class="layui-row layui-col-space5">
+                        <div class="layui-col-xs8 layui-col-md8 top-panel-number" style="color: #28333E;" id="appointment-count">
+                            0
+                        </div>
+                        <div class="layui-col-xs4 layui-col-md4 top-panel-tips">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs6 layui-col-md3">
+            <div class="layui-card top-panel">
+                <div class="layui-card-header">病历总数</div>
+                <div class="layui-card-body">
+                    <div class="layui-row layui-col-space5">
+                        <div class="layui-col-xs8 layui-col-md8 top-panel-number" style="color: #28333E;" id="value3">
+                            0
+                        </div>
+                        <div class="layui-col-xs4 layui-col-md4  top-panel-tips">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs6 layui-col-md3">
+            <div class="layui-card top-panel">
+                <div class="layui-card-header">登录统计</div>
+                <div class="layui-card-body">
+                    <div class="layui-row layui-col-space5">
+                        <div class="layui-col-xs8 layui-col-md8 top-panel-number" style="color: #28333E;" id="login-count">
+                            0
+                        </div>
+                        <div class="layui-col-xs4 layui-col-md4 top-panel-tips">
+                           
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-row layui-col-space10">
+        <div class="layui-col-md9">
+            <div class="layui-card">
+                <div class="layui-card-body">
+                    <div class="layui-tab custom-tab layui-tab-brief" lay-filter="docDemoTabBrief">
+                        <div id="echarts-records" style="background-color:#ffffff;min-height:400px;padding: 10px"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-header">最近更新</div>
+                <div class="layui-card-body">
+                    <ul class="list" id="updatelog-list">
+                        <li class="list-item"><span class="title">加载中...</span><span class="footer">-</span></li>
+                    </ul>
+                </div>
+            </div> 
+        </div>
+    </div>
+</div>
+<!--</div>-->
+{% include 'system/common/footer.html' %}
+<script>
+  layui.use(['layer', 'echarts', 'element', 'count'], function () {
+    var $ = layui.jquery,
+      layer = layui.layer,
+      element = layui.element,
+      count = layui.count,
+      echarts = layui.echarts
+    
+      let MODULE_PATH = "{{ url_for('system.patientsummary.main') }}"
+        
+    // 加载统计信息（自执行函数）
+    function loadStatistics () {
+        $.ajax({
+            url: MODULE_PATH + 'statistics',
+            type: 'get',
+            dataType: 'json',
+            success: function (result) {
+                if (result.success && result.data) {
+                    var patientCount = result.data.local_count || 0
+                    // 使用count.up动画显示患者数量
+                    count.up('local-patient-count', {
+                        time: 2000,
+                        num: patientCount,
+                        bit: 0,
+                        regulator: 50
+                    })
+                } 
+            }
+        })
+    }
+    loadStatistics()
+
+    function loadAppointmentCount () {
+        $.ajax({
+            url: MODULE_PATH + 'appointmentCount',
+            type: 'get',
+            dataType: 'json',
+            success: function (result) {
+                if (result.success && result.data) {
+                    var appointmentCount = result.data.appointment_count || 0
+                    count.up('appointment-count', {
+                        time: 2000,
+                        num: appointmentCount,
+                        bit: 0,
+                        regulator: 50
+                    })
+                } 
+            }
+        })
+    }
+    loadAppointmentCount()
+
+    // 加载登录次数统计
+    function loadLoginCount () {
+        $.ajax({
+            url: MODULE_PATH + 'loginCount',
+            type: 'get',
+            dataType: 'json',
+            success: function (result) {
+                if (result.success && result.data) {
+                    var loginCount = result.data.login_count || 0
+                    count.up('login-count', {
+                        time: 2000,
+                        num: loginCount,
+                        bit: 0,
+                        regulator: 50
+                    })
+                } 
+            },
+            error: function(xhr, status, error) {
+                console.error('获取登录次数统计失败:', error)
+            }
+        })
+    }
+    loadLoginCount()
+
+    // 预约数量图表
+    var echartsRecords = echarts.init(document.getElementById('echarts-records'), 'walden')
+    
+    // 加载预约每日统计数据
+    function loadAppointmentDailyStats() {
+        $.ajax({
+            url: MODULE_PATH + 'appointmentDailyStats',
+            type: 'get',
+            dataType: 'json',
+            success: function (result) {
+                if (result.success && result.data) {
+                    var dates = result.data.dates || []
+                    var counts = result.data.counts || []
+                    
+                    // 格式化日期显示（只显示月-日）
+                    var formattedDates = dates.map(function(date) {
+                        var dateObj = new Date(date)
+                        var month = (dateObj.getMonth() + 1).toString().padStart(2, '0')
+                        var day = dateObj.getDate().toString().padStart(2, '0')
+                        return month + '-' + day
+                    })
+                    
+                    var option = {
+                        title: {
+                            text: '每日预约数量趋势',
+                            left: 'center',
+                            textStyle: {
+                                fontSize: 16,
+                                fontWeight: 'normal'
+                            }
+                        },
+                        tooltip: {
+                            trigger: 'axis',
+                            formatter: function(params) {
+                                var param = params[0]
+                                var dateIndex = param.dataIndex
+                                var fullDate = dates[dateIndex]
+                                return fullDate + '<br/>预约数量: ' + param.value
+                            }
+                        },
+                        xAxis: [{
+                            type: 'category',
+                            data: formattedDates,
+                            axisLine: {
+                                lineStyle: {
+                                    color: '#999'
+                                }
+                            },
+                            axisLabel: {
+                                rotate: 45, // 旋转45度避免重叠
+                                interval: Math.ceil(formattedDates.length / 10) // 根据数据量自动调整显示间隔
+                            }
+                        }],
+                        yAxis: [{
+                            type: 'value',
+                            name: '预约数量',
+                            splitNumber: 4,
+                            splitLine: {
+                                lineStyle: {
+                                    type: 'dashed',
+                                    color: '#DDD'
+                                }
+                            },
+                            axisLine: {
+                                show: false,
+                                lineStyle: {
+                                    color: '#333'
+                                }
+                            },
+                            nameTextStyle: {
+                                color: '#999'
+                            },
+                            splitArea: {
+                                show: false
+                            }
+                        }],
+                        series: [{
+                            name: '预约数量',
+                            type: 'line',
+                            data: counts,
+                            lineStyle: {
+                                normal: {
+                                    width: 3,
+                                    color: {
+                                        type: 'linear',
+                                        colorStops: [{
+                                            offset: 0,
+                                            color: '#A9F387' // 0% 处的颜色
+                                        }, {
+                                            offset: 1,
+                                            color: '#48D8BF' // 100% 处的颜色
+                                        }],
+                                        globalCoord: false
+                                    },
+                                    shadowColor: 'rgba(72,216,191, 0.3)',
+                                    shadowBlur: 10,
+                                    shadowOffsetY: 20
+                                }
+                            },
+                            itemStyle: {
+                                normal: {
+                                    color: '#48D8BF',
+                                    borderWidth: 2,
+                                    borderColor: '#A9F387'
+                                }
+                            },
+                            areaStyle: {
+                                normal: {
+                                    color: {
+                                        type: 'linear',
+                                        x: 0,
+                                        y: 0,
+                                        x2: 0,
+                                        y2: 1,
+                                        colorStops: [{
+                                            offset: 0,
+                                            color: 'rgba(72,216,191, 0.3)'
+                                        }, {
+                                            offset: 1,
+                                            color: 'rgba(72,216,191, 0.1)'
+                                        }]
+                                    }
+                                }
+                            },
+                            smooth: true
+                        }]
+                    }
+                    echartsRecords.setOption(option)
+                } else {
+                    // 如果获取数据失败，显示空图表
+                    echartsRecords.setOption({
+                        title: {
+                            text: '每日预约数量趋势',
+                            left: 'center'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: []
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [{
+                            data: [],
+                            type: 'line'
+                        }]
+                    })
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('获取预约统计数据失败:', error)
+                layer.msg('获取预约统计数据失败', {icon: 2})
+            }
+        })
+    }
+    
+    // 初始化图表
+    loadAppointmentDailyStats()
+
+    // 加载最新更新记录
+    function loadLatestUpdateLogs() {
+        $.ajax({
+            url: '{{ url_for("system.updatelog.latest") }}',
+            type: 'get',
+            dataType: 'json',
+            success: function (result) {
+                if (result.success && result.data) {
+                    var logs = result.data || []
+                    var listHtml = ''
+                    if (logs.length === 0) {
+                        listHtml = '<li class="list-item"><span class="title">暂无更新记录</span><span class="footer">-</span></li>'
+                    } else {
+                        logs.forEach(function(log) {
+                            var dateStr = ''
+                            if (log.createTime) {
+                                var date = new Date(log.createTime)
+                                var year = date.getFullYear()
+                                var month = (date.getMonth() + 1).toString().padStart(2, '0')
+                                var day = date.getDate().toString().padStart(2, '0')
+                                var hour = date.getHours().toString().padStart(2, '0')
+                                var minute = date.getMinutes().toString().padStart(2, '0')
+                                dateStr = year + '-' + month + '-' + day + ' ' + hour + ':' + minute
+                            }
+                            listHtml += '<li class="list-item updatelog-item" data-id="' + log.id + '" style="cursor: pointer;">' +
+                                '<span class="title">' + (log.title || '无标题') + '</span>' +
+                                '<span class="footer">' + dateStr + '</span>' +
+                                '</li>'
+                        })
+                    }
+                    $('#updatelog-list').html(listHtml)
+                    
+                    // 绑定点击事件
+                    $('.updatelog-item').on('click', function() {
+                        var id = $(this).data('id')
+                        // 打开更新记录管理页面
+                        if (parent && parent.layui && parent.layui.index) {
+                            parent.layui.index.openTabsPage('{{ url_for("system.updatelog.main") }}', '更新记录管理')
+                        } else {
+                            // 如果不在iframe中，直接跳转
+                            window.location.href = '{{ url_for("system.updatelog.main") }}'
+                        }
+                    })
+                } else {
+                    $('#updatelog-list').html('<li class="list-item"><span class="title">加载失败</span><span class="footer">-</span></li>')
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('获取更新记录失败:', error)
+                $('#updatelog-list').html('<li class="list-item"><span class="title">加载失败</span><span class="footer">-</span></li>')
+            }
+        })
+    }
+    
+    // 加载最新更新记录
+    loadLatestUpdateLogs()
+
+    window.onresize = function () {
+      echartsRecords.resize()
+    }
+
+  })
+</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>新增病史</title>
+    {% include 'system/common/header.html' %}
+</head>
+<body>
+<form class="layui-form">
+    <div class="mainBox">
+        <div class="main-container">
+            <div class="main-container">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">患者</label>
+                    <div class="layui-input-block">
+                      <xm-select id="patientSelect" name="PatientID" lay-search></xm-select>
+                    </div>
+                </div>
+                
+                <div class="layui-form-item">
+                    <label class="layui-form-label">既往史</label>
+                    <div class="layui-input-block">
+                        <textarea name="PastHistory" placeholder="请输入既往史" class="layui-textarea" rows="1"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">个人史</label>
+                    <div class="layui-input-block">
+                        <textarea name="PersonalHistory" placeholder="请输入个人史" class="layui-textarea" rows="1"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">婚育史</label>
+                    <div class="layui-input-block">
+                        <textarea name="MarriageHistory" placeholder="请输入婚育史" class="layui-textarea" rows="1"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">家族史</label>
+                    <div class="layui-input-block">
+                        <textarea name="FamilyHistory" placeholder="请输入家族史" class="layui-textarea" rows="1"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">过敏史</label>
+                    <div class="layui-input-block">
+                        <textarea name="AllergyHistory" placeholder="请输入过敏史" class="layui-textarea" rows="1"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">月经史</label>
+                    <div class="layui-input-block">
+                        <textarea name="MenstrualHistory" placeholder="请输入月经史" class="layui-textarea" rows="1"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">其它</label>
+                    <div class="layui-input-block">
+                        <textarea name="Other" placeholder="请输入其它" class="layui-textarea" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">小结</label>
+                    <div class="layui-input-block">
+                        <textarea name="Summary" placeholder="请输入小结" class="layui-textarea" rows="2"></textarea>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="bottom">
+        <div class="button-container">
+            <button type="submit" class="pear-btn pear-btn-primary pear-btn-sm" lay-submit="" lay-filter="user-save">
+                <i class="layui-icon layui-icon-ok"></i>提交
+            </button>
+            <button type="button" class="pear-btn pear-btn-sm" id="close-btn">
+                <i class="layui-icon layui-icon-close"></i>关闭
+            </button>
+        </div>
+    </div>
+</form>
+{% include 'system/common/footer.html' %}
+<script src="{{ url_for('static', filename='system/component/layui/xm-select.js') }}"></script>
+<script>
+  layui.use(['form', 'jquery'], function () {
+    let form = layui.form
+    let $ = layui.jquery
+    var laydate = layui.laydate;
+
+    // ==================初始化 xm-select==================
+    /**
+     * 患者搜索函数
+     * xm-select remoteMethod 格式: function(keyword, callback, show, pageIndex)
+     * @param {string} keyword - 搜索关键词
+     * @param {function} callback - 回调函数，格式: (data, totalSize)
+     * @param {boolean} show - 是否显示
+     * @param {number} pageIndex - 页码
+     */
+     const searchPatients = function(keyword, callback) {
+        const keywordTrim = keyword ? keyword.trim() : '';
+        
+        $.ajax({
+            url: '/system/patients/search',
+            type: 'GET',
+            data: { keyword: keywordTrim },
+            success: function(res) {
+                console.log(res);
+                if (Array.isArray(res.data) && res.data.length > 0) {
+
+                    // 格式化数据，确保 xm-select 需要的 name 和 value 字段
+                    const formattedData = res.data.map(function(item) {
+                        let name = item.name || '';
+                        let value = item.value || item.PatientID || '';
+                        
+                        // 如果 name 为空，尝试从其他字段构建
+                        if (!name && item.Name) {
+                            name = item.PatientNo ? `${item.Name} (${item.PatientNo})` : item.Name;
+                        }
+                        
+                        // 确保 value 不为空
+                        if (!value && item.PatientID) {
+                            value = String(item.PatientID);
+                        }
+                        
+                        return { name, value };
+                    }).filter(function(item) {
+                        // 过滤掉无效数据
+                        return item.name && item.value;
+                    });
+                    
+                    // callback 参数: (data, totalSize)
+                    callback(formattedData, res.count || formattedData.length);
+                } else {
+                    callback([], 0);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('获取患者数据失败:', error);
+                layer.msg('获取患者数据失败，请稍后重试', { icon: 2, time: 2000 });
+                callback([], 0);
+            }
+        });
+    };
+    
+    // 初始化 xm-select
+    xmSelect.render({
+        el: '#patientSelect',
+        name: 'PatientID',
+        radio: true,
+        filterable: true,
+        remoteSearch: true,
+        remoteMethod: searchPatients,
+        tips: '请检索患者姓名、患者编号、手机号',
+        height: '200px',
+        prop: {
+            name: 'name',
+            value: 'value'
+        }
+    });
+
+    // 表单提交处理
+    form.on('submit(user-save)', function (data) {
+
+        if (!data.field.PatientID) {
+            layer.msg('请选择患者', { icon: 2, time: 2000 });
+            return false;
+        }
+
+        $.ajax({
+            url: "/system/patientmedicalhistories/save",
+            data: JSON.stringify(data.field),
+            dataType: 'json',
+            contentType: 'application/json',
+            type: 'post',
+            success: function (result) {
+                if (result.success) {
+                    layer.msg(result.msg, {icon: 1, time: 1000}, function () {
+                        parent.layer.close(parent.layer.getFrameIndex(window.name))
+                        parent.layui.table.reload('user-table')
+                    })
+                } else {
+                    layer.msg(result.msg, {icon: 2, time: 1000})
+                }
+            }
+        })
+        return false
+    })
+
+    // 关闭按钮点击事件
+    $('#close-btn').on('click', function() {
+      parent.layer.close(parent.layer.getFrameIndex(window.name))
+    })
+  })
+</script>
+<script>
+</script>
+</body>
+</html>

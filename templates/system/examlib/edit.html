@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <title>编辑检查项目</title>
+    {% include 'system/common/header.html' %}
+    <style>
+        .attachments-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .attachment-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .attachment-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        .attachment-item .delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .attachment-item .delete-btn:hover {
+            background: rgba(255,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+<form class="layui-form">
+    <div class="mainBox">
+        <div class="main-container">
+            <div class="layui-form-item layui-hide">
+                <label class="layui-form-label">检查ID</label>
+                <div class="layui-input-block">
+                    <input type="text" value="{{ exam.ExamID }}" name="ExamID" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">关联患者</label>
+                <div class="layui-input-block">
+                    <select name="PatientID" lay-verify="required" disabled>
+                        {% if patient %}
+                            <option value="{{ patient.PatientID }}" selected>
+                                {{ patient.PatientNo }} - {{ patient.Name }}
+                            </option>                        
+                        {% endif %}
+                    </select>
+                    <input type="hidden" name="PatientID" value="{{ patient.PatientID if patient else '' }}">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">检查名称</label>
+                <div class="layui-input-block">
+                    <input type="text" name="ExamName" value="{{ exam.ExamName }}" lay-verify="required" placeholder="请输入检查名称" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">检查结果</label>
+                <div class="layui-input-block">
+                    <textarea name="Remarks" placeholder="请输入检查结果" class="layui-textarea">{{ exam.Remarks }}</textarea>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">附件</label>
+                <div class="layui-input-block">
+                    <button type="button" class="layui-btn" id="upload-attachments">
+                        <i class="layui-icon layui-icon-upload"></i>上传图片
+                    </button>
+                    <div class="attachments-preview" id="attachments-preview"></div>
+                </div>
+            </div> 
+        </div>
+    </div>
+    <div class="bottom">
+        <div class="button-container">
+            <button type="submit" class="pear-btn pear-btn-primary pear-btn-sm" lay-submit lay-filter="examlib-update">
+                <i class="layui-icon layui-icon-ok"></i>提交
+            </button>
+            <button type="button" class="pear-btn pear-btn-sm" id="close-btn">
+                <i class="layui-icon layui-icon-close"></i>关闭
+            </button>
+        </div>
+    </div>
+</form>
+{% include 'system/common/footer.html' %}
+<script>
+layui.use(['form','jquery', 'layer', 'upload'], function () {
+    let form = layui.form
+    let $ = layui.jquery
+    let layer = layui.layer
+    let upload = layui.upload
+
+    // 从URL获取PatientID参数（从患者详情页跳转过来时会有此参数）
+    function getUrlParam(name) {
+        const urlParams = new URLSearchParams(window.location.search)
+        return urlParams.get(name)
+    }
+    
+    const urlPatientID = getUrlParam('PatientID')
+    
+    // 如果URL中有PatientID参数，更新隐藏字段的值
+    if (urlPatientID) {
+        $('input[name="PatientID"]').val(urlPatientID)
+    }
+
+    // 附件管理
+    let attachmentsList = []
+    
+    // 初始化附件
+    {% if attachments_list %}
+    try {
+        var attachmentsData = {{ attachments_list|tojson|safe }};
+        if (Array.isArray(attachmentsData)) {
+            attachmentsList = attachmentsData
+        }
+    } catch(e) {
+        console.error('解析附件失败:', e)
+    }
+    {% endif %}
+    renderAttachments()
+    
+    upload.render({
+        elem: '#upload-attachments',
+        url: "{{ url_for('system.adminFile.upload_api') }}",
+        accept: 'images',
+        multiple: true,
+        done: function(res) {
+            if (res.success && res.data && res.data.src) {
+                attachmentsList.push(res.data.src)
+                renderAttachments()
+            } else {
+                layer.msg(res.msg || '上传失败', {icon: 2})
+            }
+        },
+        error: function() {
+            layer.msg('上传失败，请稍后重试', {icon: 2})
+        }
+    })
+    
+    function renderAttachments() {
+        let html = ''
+        attachmentsList.forEach(function(url, index) {
+            html += '<div class="attachment-item">' +
+                   '<img src="' + url + '" onclick="previewImage(\'' + url + '\')">' +
+                   '<button type="button" class="delete-btn" data-index="' + index + '">×</button>' +
+                   '</div>'
+        })
+        $('#attachments-preview').html(html)
+    }
+    
+    $(document).on('click', '.delete-btn', function(e) {
+        e.stopPropagation()
+        let index = $(this).data('index')
+        attachmentsList.splice(index, 1)
+        renderAttachments()
+    })
+    
+    // 图片预览
+    window.previewImage = function(url) {
+        layer.open({
+            type: 1,
+            title: false,
+            closeBtn: 1,
+            area: ['90%', '90%'],
+            shadeClose: true,
+            content: '<img src="' + url + '" style="width: 100%; height: 100%; object-fit: contain;">'
+        })
+    }
+
+    form.on('submit(examlib-update)', function (data) {
+        // 从隐藏字段获取PatientID（因为select被禁用了）
+        const patientID = $('input[name="PatientID"]').val() || data.field.PatientID
+        
+        if (!patientID) {
+            layer.msg('患者信息不能为空', {icon: 2})
+            return false
+        }
+        
+        let formData = {
+            ExamID: data.field.ExamID,
+            PatientID: patientID,
+            ExamName: data.field.ExamName,
+            AttachMents: attachmentsList,
+            Remarks: data.field.Remarks
+        }
+        
+        $.ajax({
+            url: "{{ url_for('system.examlib.update') }}",
+            data: JSON.stringify(formData),
+            dataType: 'json',
+            contentType: 'application/json',
+            type: 'put',
+            success: function (result) {
+                if (result.success) {
+                    layer.msg(result.msg || '更新成功', {icon: 1, time: 1500}, function () {
+                        // 关闭编辑窗口，不刷新父页面
+                        var index = parent.layer.getFrameIndex(window.name)
+                        parent.layer.close(index)
+                    })
+                } else {
+                    layer.msg(result.msg || '更新失败', {icon: 2, time: 2000}, function () {
+                        // 关闭编辑窗口，不刷新父页面
+                        var index = parent.layer.getFrameIndex(window.name)
+                        parent.layer.close(index)
+                    })
+                }
+            },
+            error: function(xhr, status, error) {
+                layer.msg('请求失败，请稍后重试', {icon: 2, time: 2000}, function () {
+                    // 关闭编辑窗口，不刷新父页面
+                    var index = parent.layer.getFrameIndex(window.name)
+                    parent.layer.close(index)
+                })
+            }
+        })
+        return false
+    })
+    
+    // 关闭按钮点击事件
+    $('#close-btn').on('click', function() {
+        parent.layer.close(parent.layer.getFrameIndex(window.name))
+    })
+})
+</script>
+</body>
+</html>

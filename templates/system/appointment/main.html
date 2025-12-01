@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>预约管理</title>
+    {% include 'system/common/header.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='system/admin/css/other/user.css') }}"/>
+</head>
+<body class="pear-container">
+    <!-- 查询表单 -->
+    <div class="layui-card">
+        <div class="layui-card-body">
+            <form class="layui-form" action="" lay-filter="user-query-form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">患者编号</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="PatientNo" placeholder="" class="layui-input">
+                    </div>
+                    <label class="layui-form-label">患者姓名</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="Name" placeholder="" class="layui-input">
+                    </div>
+
+                    <label class="layui-form-label">预约日期</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="AppointmentTime" id="laydate-type-date"  class="layui-input">
+                    </div>
+                    <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="user-query">
+                        <i class="layui-icon layui-icon-search"></i>查询
+                    </button>
+                    <button type="reset" class="pear-btn pear-btn-md">
+                        <i class="layui-icon layui-icon-refresh"></i>重置
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="user-left user-collasped">
+        <div class="layui-card">
+            <div class="layui-card-body">
+                <div style="overflow: auto">
+                    <div id="date_nav"></div>
+                    <div id="date_content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户表格  -->
+    <div class="user-main user-collasped">
+        <div class="layui-card">
+            <div class="layui-card-body">
+                <table id="user-table" lay-filter="user-table"></table>
+            </div>
+        </div>
+    </div>
+</body>
+
+
+<!-- 表格操作 -->
+<script type="text/html" id="user-toolbar">
+    <!-- {% if authorize("system:appointment:add") %} -->
+        <button class="pear-btn pear-btn-primary pear-btn-md" lay-event="add">
+            <i class="pear-icon pear-icon-add"></i>新增预约
+        </button>
+    <!-- {% endif %}
+    <button class="pear-btn pear-btn-md" lay-event="collasped">
+        <i class="pear-icon pear-icon-modular"></i>日期
+    </button> -->
+</script>
+
+<!-- 用户修改操作  -->
+<script type="text/html" id="user-bar">
+    {% if authorize("system:appointment:edit") %}
+        <button class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit"><i class="pear-icon pear-icon-edit"> 修改</i>
+        </button>
+    {% endif %}
+    {% if authorize("system:appointment:remove") %}
+        <button class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove"><i
+                class="pear-icon pear-icon-ashbin"> 取消</i>
+        </button>
+    {% endif %}
+</script>
+
+{% raw %}
+<script type="text/html" id="user-enable">
+    <input type="checkbox" name="enable" value="{{ d.id }}" lay-skin="switch" lay-text="启用|禁用"
+           lay-filter="user-enable"
+            {{# if(d.enable==1){ }} checked {{# } }} />
+</script>
+
+<script type="text/html" id="user-createTime">
+    {{layui.util.toDateString(d.create_at,  "yyyy-MM-dd HH:mm:ss")}}
+</script>
+
+<script type="text/html" id="user-updateTime">
+    {{layui.util.toDateString(d.update_at,  "yyyy-MM-dd HH:mm:ss")}}
+</script>
+{% endraw %}
+
+{% include 'system/common/footer.html' %}
+
+<script>
+        
+    layui.use(['table', 'form', 'jquery', 'popup', 'common'], function () {
+        let table = layui.table
+        let form = layui.form
+        let $ = layui.jquery
+        let laydate = layui.laydate;
+        let popup = layui.popup
+        let common = layui.common
+        let MODULE_PATH = "{{ url_for('system.appointment.main') }}"
+        // 表格数据
+        let cols = [
+            [
+                {title: 'id', field: 'AppointmentID', align: 'center', hide: true},
+                {title: '患者编号', field: 'PatientNo', align: 'center', width: 160},
+                {title: '患者姓名', field: 'Name', align: 'center', width: 160},
+                {title: '预约时间', field: 'AppointmentTime', align: 'center', width: 160},
+                {title: '备注', field: 'Remarks', align: 'center', width: 400},
+                {title: '创建人', field: 'Creator', align: 'center', width: 160},
+                {title: '创建时间', field: 'CreateDate', align: 'center', width: 160, templet: function(d){
+                    if(d.CreateDate) {
+                        return layui.util.toDateString(d.CreateDate, "yyyy-MM-dd HH:mm:ss");
+                    }
+                    return '';
+                }},
+                {title: '操作', toolbar: '#user-bar', align: 'center', width: 360}
+            ]
+        ]
+
+        // 检索日期
+        laydate.render({
+            elem: '#laydate-type-date',
+            format: 'yyyy-MM-dd'
+        });
+        
+        // 日期导航
+        laydate.render({
+            elem: '#date_nav',
+            position: 'static',
+            change: function(value, date) { 
+                //监听日期被切换
+                lay('#date_content').html(value);
+            }
+        });
+
+        // 渲染表格数据
+        table.render({
+            elem: '#user-table',
+            url: MODULE_PATH + 'data',
+            page: true,
+            cols: cols,
+            skin: 'line',
+            height: 'full-148',
+            toolbar: '#user-toolbar', /*工具栏*/
+            text: {none: '暂无人员信息'},
+            defaultToolbar: [{layEvent: 'refresh', icon: 'layui-icon-refresh'}, 'filter', 'print', 'exports'] /*默认工具栏*/
+        })
+
+        //
+        $('.user-group').click(function () {
+            let group = $(this).attr('user-group')
+            let field = form.val('user-query-form')
+            if (group === '-1') {
+                field.deptId = group
+                $(this).removeClass('button-default')
+                $(this).prev().removeClass('button-primary')
+                $(this).prev().addClass('button-default')
+                $(this).addClass('button-primary')
+            } else {
+                field.deptId = group
+                $(this).removeClass('button-default')
+                $(this).next().removeClass('button-primary')
+                $(this).next().addClass('button-default')
+                $(this).addClass('button-primary')
+            }
+            window.refresh(field)
+        })
+
+        table.on('tool(user-table)', function (obj) {
+            if (obj.event === 'remove') {
+                window.remove(obj)
+            } else if (obj.event === 'edit') {
+                window.edit(obj)
+            }
+        })
+
+        table.on('toolbar(user-table)', function (obj) {
+            if (obj.event === 'add') {
+                window.add()
+            } else if (obj.event === 'refresh') {
+                window.refresh()
+            } else if (obj.event === 'batchRemove') {
+                window.batchRemove(obj)
+            } else if (obj.event === 'collasped') {
+                $('.user-left').toggleClass('user-collasped')
+                $('.user-main').toggleClass('user-collasped')
+                table.resize()
+            }
+        })
+
+        form.on('submit(user-query)', function (data) {
+            window.refresh(data.field)
+            return false
+        })
+
+        
+        window.add = function () {
+            layer.open({
+                type: 2,
+                title: '新增预约',
+                shade: 0.1,
+                area: ['550px', '400px'],
+                content: MODULE_PATH + 'add'
+            })
+        }
+
+        window.edit = function (obj) {
+            layer.open({
+                type: 2,
+                title: '修改预约时间',
+                shade: 0.1,
+                area: ['550px', '400px'],
+                content: MODULE_PATH + 'edit/' + obj.data['AppointmentID']
+            })
+        }
+
+        window.remove = function (obj) {
+            layer.confirm('确定要取消该预约吗？', {icon: 3, title: '提示'}, function (index) {
+                layer.close(index)
+                let loading = layer.load()
+                $.ajax({
+                    url: MODULE_PATH + 'remove/' + obj.data['AppointmentID'],
+                    dataType: 'json',
+                    type: 'delete',
+                    success: function (result) {
+                        layer.close(loading)
+                        if (result.success) {
+                            popup.success(result.msg, function () {
+                                obj.del()
+                            })
+                        } else {
+                            popup.failure(result.msg)
+                        }
+                    }
+                })
+            })
+        }
+
+        window.refresh = function (param) {
+            table.reload('user-table', {where: param})
+        }
+    })
+</script>
+</html>

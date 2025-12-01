@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>患者管理</title>
+    {% include 'system/common/header.html' %}
+</head>
+<body>
+<form class="layui-form">
+    <div class="mainBox">
+        <div class="main-container">
+            <div class="main-container">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">患者姓名</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="Name" lay-verify="title" autocomplete="off" placeholder="请输入患者姓名" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">性别</label>
+                    <div class="layui-input-block">
+                        <input type="radio" name="Sex" value="男" lay-verify="required" autocomplete="off" class="layui-input">男
+                        <input type="radio" name="Sex" value="女" lay-verify="required" autocomplete="off" class="layui-input">女 
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">电话</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="ContactPhone" lay-verify="mobile" autocomplete="off" placeholder="请输入电话号码" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">证件号</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="IdNumber" lay-verify="number" autocomplete="off" placeholder="请输入证件号" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">生日</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="Birthday" id="laydate-type-date"  placeholder="请输入生日" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">地址</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="Address" lay-verify="title" autocomplete="off" placeholder="请输入地址" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">职业</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="Career" lay-verify="title" autocomplete="off" placeholder="请输入职业" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">民族</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="Nation" lay-verify="title" autocomplete="off" placeholder="请输入民族" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">推荐人</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="CustomerType" lay-verify="title" autocomplete="off" placeholder="请输入推荐人" class="layui-input">
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">备注</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="Remarks" lay-verify="title" autocomplete="off" placeholder="请输入备注" class="layui-input">
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+    <div class="bottom">
+        <div class="button-container">
+            <button type="submit" class="pear-btn pear-btn-primary pear-btn-sm" lay-submit="" lay-filter="user-save">
+                <i class="layui-icon layui-icon-ok"></i>
+                提交
+            </button>
+            <button type="button" class="pear-btn pear-btn-sm" id="close-btn">
+                <i class="layui-icon layui-icon-close"></i>
+                关闭
+            </button>
+        </div>
+    </div>
+</form>
+{% include 'system/common/footer.html' %}
+<script>
+  layui.use(['form', 'jquery'], function () {
+    let form = layui.form
+    let $ = layui.jquery
+    var laydate = layui.laydate;
+
+    laydate.render({
+        elem: '#laydate-type-date',
+        format: 'yyyy-MM-dd'
+    });
+    
+    form.on('submit(user-save)', function (data) {
+      // let roleIds = ''
+      // $('input[type=checkbox]:checked').each(function () {
+      //   roleIds += $(this).val() + ','
+      // })
+      // roleIds = roleIds.substr(0, roleIds.length - 1)
+      // data.field.roleIds = roleIds
+
+      $.ajax({
+        url: '/system/cnmedicine/save',
+        data: JSON.stringify(data.field),
+        dataType: 'json',
+        contentType: 'application/json',
+        type: 'post',
+        success: function (result) {
+          if (result.success) {
+            layer.msg(result.msg, { icon: 1, time: 1000 }, function () {
+              parent.layer.close(parent.layer.getFrameIndex(window.name))//关闭当前页
+              parent.layui.table.reload('user-table')
+            })
+          } else {
+            layer.msg(result.msg, { icon: 2, time: 1000 })
+          }
+        }
+      })
+      return false
+    })
+    
+    // 关闭按钮点击事件
+    $('#close-btn').on('click', function() {
+      parent.layer.close(parent.layer.getFrameIndex(window.name))
+    })
+  })
+</script>
+<script>
+</script>
+</body>
+</html>
